@@ -269,4 +269,9 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
-client.login(DISCORD_TOKEN);
+const BOT_TOKEN = process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN;
+if (!BOT_TOKEN) {
+  console.error('Missing DISCORD_TOKEN or DISCORD_BOT_TOKEN in environment variables.');
+  process.exit(1);
+}
+client.login(BOT_TOKEN);
