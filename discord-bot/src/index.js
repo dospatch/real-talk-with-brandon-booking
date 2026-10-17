@@ -1,8 +1,10 @@
 require('dotenv').config();
 const {
   Client, GatewayIntentBits, ChannelType, PermissionsBitField,
-  EmbedBuilder, Events
+  EmbedBuilder, Events, REST, Routes
 } = require('discord.js');
+
+const { commands } = require('./commands');
 
 const client = new Client({
   intents: [
@@ -115,9 +117,27 @@ async function sendBooking(user) {
   return user.send({ embeds: [embed] });
 }
 
-client.once(Events.ClientReady, c => {
+client.once(Events.ClientReady, async c => {
   console.log(`Logged in as ${c.user.tag}`);
-  console.log('Real Talk with Brandon bot is online.');
+
+  const clientId = process.env.CLIENT_ID;
+  const guildId = process.env.GUILD_ID;
+  const token = process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN;
+
+  if (!clientId || !guildId) {
+    console.error('Missing CLIENT_ID or GUILD_ID. Slash commands were not registered.');
+    return;
+  }
+
+  try {
+    const rest = new REST({ version: '10' }).setToken(token);
+    console.log('Registering Real Talk with Brandon slash commands...');
+    await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
+    console.log(`Successfully registered ${commands.length} slash commands.`);
+    console.log('Real Talk with Brandon bot is online.');
+  } catch (error) {
+    console.error('Slash-command registration failed:', error);
+  }
 });
 
 client.on(Events.GuildMemberAdd, async member => {
@@ -249,12 +269,4 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
-// ACLClouds may expose its dedicated token field as DISCORD_BOT_TOKEN.
-// Support both names so the bot works with either hosting configuration.
-const DISCORD_TOKEN = process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN;
-
-if (!DISCORD_TOKEN) {
-  console.error('Missing Discord token. Set DISCORD_TOKEN (or DISCORD_BOT_TOKEN) in your host environment variables.');
-  process.exit(1);
-}
 client.login(DISCORD_TOKEN);
