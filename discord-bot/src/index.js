@@ -249,8 +249,12 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
-if (!process.env.DISCORD_TOKEN) {
-  console.error('Missing DISCORD_TOKEN. Copy .env.example to .env and add your bot token.');
+// ACLClouds may expose its dedicated token field as DISCORD_BOT_TOKEN.
+// Support both names so the bot works with either hosting configuration.
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN;
+
+if (!DISCORD_TOKEN) {
+  console.error('Missing Discord token. Set DISCORD_TOKEN (or DISCORD_BOT_TOKEN) in your host environment variables.');
   process.exit(1);
 }
-client.login(process.env.DISCORD_TOKEN);
+client.login(DISCORD_TOKEN);
