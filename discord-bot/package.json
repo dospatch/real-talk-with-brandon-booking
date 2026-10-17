@@ -1,0 +1,17 @@
+{
+  "name": "real-talk-with-brandon-discord-bot",
+  "version": "1.0.0",
+  "description": "Approval-first guest application and Discord setup bot for Real Talk with Brandon",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "deploy-commands": "node src/deploy-commands.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "discord.js": "^14.19.3",
+    "dotenv": "^16.4.7"
+  }
+}
