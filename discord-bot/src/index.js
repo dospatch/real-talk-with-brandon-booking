@@ -106,21 +106,31 @@ async function privateStaffOverwrites(guild) {
 }
 
 async function ensureCategory(guild, name, privateStaff, staffRole) {
-  let category = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && c.name === name);
+  // Only reuse a category if Discord confirms it is accessible in this guild.
+  // A stale cached channel ID can cause Discord API error 50001 (Missing Access).
+  const cached = guild.channels.cache.find(
+    c => c.type === ChannelType.GuildCategory && c.name === name
+  );
 
-  // Do not replace permissions on an existing category: doing so can remove
-  // carefully configured access and was causing Discord Missing Access errors.
-  if (!category) {
-    const permissionOverwrites = privateStaff
-      ? await privateStaffOverwrites(guild)
-      : [];
-    category = await guild.channels.create({
-      name,
-      type: ChannelType.GuildCategory,
-      permissionOverwrites
-    });
+  if (cached) {
+    const verified = await guild.channels.fetch(cached.id).catch(() => null);
+    if (verified && verified.guildId === guild.id &&
+        verified.type === ChannelType.GuildCategory) {
+      return verified;
+    }
+    console.warn(`Ignoring inaccessible/stale category "${name}" (${cached.id}); creating a replacement.`);
   }
-  return category;
+
+  const permissionOverwrites = privateStaff
+    ? await privateStaffOverwrites(guild)
+    : [];
+
+  return guild.channels.create({
+    name,
+    type: ChannelType.GuildCategory,
+    permissionOverwrites,
+    reason: 'Real Talk with Brandon server setup'
+  });
 }
 
 async function ensureChannel(guild, category, def, privateStaff) {
