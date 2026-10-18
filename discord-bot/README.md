@@ -7,7 +7,8 @@ Discord.js v14 bot for the podcast community and an approval-first guest process
 - `/approve-guest`: assigns Approved Guest and privately sends the booking link.
 - `/decline-guest`: records the decision in staff logs and attempts a private message.
 - `/send-booking`: re-sends the booking link only to an already-approved member.
-- `/guest-complete`: swaps Approved Guest for Past Guest.
+- `/guest-complete`: swaps Approved Guest for Past Guest and publishes a spotlight in `#past-guests`.
+- `/schedule-guest`: schedule an approved guest interview using an ISO date/time with timezone and enable automatic 24-hour, 1-hour, and 15-minute DM reminders.
 - `/guest-help`: shows the application and approval process.
 - Welcome role/message for new members.
 - Basic filter for likely exposed credentials.
@@ -40,6 +41,12 @@ Discord.js v14 bot for the podcast community and an approval-first guest process
 - `GUEST_APPLICATION_URL`: public guest form URL
 - `BOOKING_URL`: booking link
 - `OWNER_USER_ID`: optional Discord user ID allowed to use owner commands
+
+## Scheduling and reminders
+- Approve the guest first, then run `/schedule-guest` with the guest, a future ISO date/time **including timezone**, and an optional topic. Example: `2026-10-20T18:00:00-05:00`.
+- The bot sends reminder DMs as the interview approaches. Guests must allow DMs from server members.
+- Schedules are saved in `discord-bot/data/guest-schedules.json`. Make sure the host preserves this directory across restarts/redeploys; ephemeral storage can lose schedules.
+- `/guest-complete` publishes a basic spotlight to `#past-guests`. Add episode links manually if you want them shown.
 
 ## Privacy and security
 - Never commit `.env` or share bot tokens.
