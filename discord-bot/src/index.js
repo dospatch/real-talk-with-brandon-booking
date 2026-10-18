@@ -73,34 +73,68 @@ async function ensureRole(guild, def) {
   return (await findRole(guild, def.name)) ||
     guild.roles.create({ name: def.name, color: def.color, hoist: def.hoist, reason: 'Real Talk with Brandon server setup' });
 }
+async function privateStaffOverwrites(guild) {
+  const overwrites = [
+    { id: guild.roles.everyone.id, deny: [PermissionsBitField.Flags.ViewChannel] }
+  ];
+
+  // Explicitly allow the bot's own highest role so an @everyone deny cannot
+  // lock the bot out of the private category/channels.
+  const botRole = guild.members.me?.roles?.highest;
+  const access = [
+    PermissionsBitField.Flags.ViewChannel,
+    PermissionsBitField.Flags.SendMessages,
+    PermissionsBitField.Flags.ReadMessageHistory,
+    PermissionsBitField.Flags.ManageChannels
+  ];
+  if (botRole && botRole.id !== guild.roles.everyone.id) {
+    overwrites.push({ id: botRole.id, allow: access });
+  }
+
+  for (const name of ['Podcast Team', 'Podcast Administrator', 'Podcast Owner']) {
+    const role = await findRole(guild, name);
+    if (role) overwrites.push({
+      id: role.id,
+      allow: [
+        PermissionsBitField.Flags.ViewChannel,
+        PermissionsBitField.Flags.SendMessages,
+        PermissionsBitField.Flags.ReadMessageHistory
+      ]
+    });
+  }
+  return overwrites;
+}
+
 async function ensureCategory(guild, name, privateStaff, staffRole) {
   let category = guild.channels.cache.find(c => c.type === ChannelType.GuildCategory && c.name === name);
-  const overwrites = privateStaff ? [
-    { id: guild.roles.everyone.id, deny: [PermissionsBitField.Flags.ViewChannel] },
-    ...(staffRole ? [{ id: staffRole.id, allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory] }] : [])
-  ] : [];
-  if (!category) category = await guild.channels.create({ name, type: ChannelType.GuildCategory, permissionOverwrites: overwrites });
-  else if (privateStaff) await category.permissionOverwrites.set(overwrites);
+
+  // Do not replace permissions on an existing category: doing so can remove
+  // carefully configured access and was causing Discord Missing Access errors.
+  if (!category) {
+    const permissionOverwrites = privateStaff
+      ? await privateStaffOverwrites(guild)
+      : [];
+    category = await guild.channels.create({
+      name,
+      type: ChannelType.GuildCategory,
+      permissionOverwrites
+    });
+  }
   return category;
 }
+
 async function ensureChannel(guild, category, def, privateStaff) {
   const type = def.type === 'voice' ? ChannelType.GuildVoice : ChannelType.GuildText;
   let channel = guild.channels.cache.find(c => c.name === def.name && c.parentId === category.id && c.type === type);
   const options = { name: def.name, type, parent: category.id, topic: def.type === 'text' ? def.topic : undefined };
+
   if (privateStaff) {
-    options.permissionOverwrites = [
-      { id: guild.roles.everyone.id, deny: [PermissionsBitField.Flags.ViewChannel] }
-    ];
-    const staff = await findRole(guild, 'Podcast Team');
-    const admins = await findRole(guild, 'Podcast Administrator');
-    const owner = await findRole(guild, 'Podcast Owner');
-    for (const r of [staff, admins, owner]) if (r) options.permissionOverwrites.push({
-      id: r.id,
-      allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory]
-    });
+    options.permissionOverwrites = await privateStaffOverwrites(guild);
   }
+
   if (!channel) channel = await guild.channels.create(options);
-  else if (privateStaff) await channel.permissionOverwrites.set(options.permissionOverwrites);
+  // Avoid resetting permissions on existing channels; it can break access or fail
+  // when the bot cannot currently view/manage that channel.
   return channel;
 }
 async function logToStaff(guild, message) {
