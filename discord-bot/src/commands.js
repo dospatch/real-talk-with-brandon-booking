@@ -29,6 +29,13 @@ const commands = [
     .addUserOption(o => o.setName('guest').setDescription('Guest who completed an interview').setRequired(true)),
 
   new SlashCommandBuilder()
+    .setName('schedule-guest')
+    .setDescription('Schedule an approved guest interview and send automatic reminders.')
+    .addUserOption(o => o.setName('guest').setDescription('Approved guest').setRequired(true))
+    .addStringOption(o => o.setName('datetime').setDescription('ISO date/time with timezone, e.g. 2026-10-20T18:00:00-05:00').setRequired(true))
+    .addStringOption(o => o.setName('topic').setDescription('Interview topic (optional)').setRequired(false)),
+
+  new SlashCommandBuilder()
     .setName('bot-status')
     .setDescription('Show bot uptime, running version, and deployment verification status.'),
 
