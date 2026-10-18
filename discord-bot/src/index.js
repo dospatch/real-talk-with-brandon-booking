@@ -16,7 +16,7 @@ const client = new Client({
 });
 
 const APPLICATION_URL = process.env.GUEST_APPLICATION_URL;
-const BOOKING_URL = process.env.BOOKING_URL;
+const BOOKING_URL = process.env.BOOKING_URL || 'https://calendar.app.google/G3jWv5C3ikmbwxXs8';
 const OWNER_USER_ID = process.env.OWNER_USER_ID || '';
 const BOT_VERSION = process.env.BOT_VERSION || require('../package.json').version || 'unknown';
 const DEPLOY_COMMIT = (process.env.DEPLOY_COMMIT || process.env.GITHUB_SHA || '').trim();
@@ -357,8 +357,25 @@ client.on(Events.InteractionCreate, async interaction => {
       return interaction.reply({ content: `Marked ${guest} as a Past Guest.`, ephemeral: true });
     }
   } catch (error) {
-    console.error(`Command ${commandName} failed:`, error);
-    const msg = 'Something went wrong. Check the bot console logs and confirm the bot has the required permissions.';
+    const discordCode = error?.code ?? error?.rawError?.code ?? 'unknown';
+    const errorMessage = String(error?.message || error || 'Unknown error').slice(0, 700);
+    console.error(`Command ${commandName} failed (Discord/API code: ${discordCode}): ${errorMessage}`);
+    if (error?.stack) console.error(error.stack);
+
+    let hint = 'Check the hosting console for the full error.';
+    if (String(discordCode) === '50013' || /Missing Permissions/i.test(errorMessage)) {
+      hint = 'Permission denied: grant the bot Manage Channels and Manage Roles, then move its highest role above the roles it creates or assigns.';
+    } else if (String(discordCode) === '50001' || /Missing Access/i.test(errorMessage)) {
+      hint = 'The bot cannot access a target channel or server. Confirm it is in the correct server and can view the affected channels.';
+    } else if (/Unknown Guild|Unknown Server/i.test(errorMessage) || String(discordCode) === '10004') {
+      hint = 'Check that GUILD_ID is the correct server ID and that this bot has joined that server.';
+    } else if (/Unknown Role/i.test(errorMessage) || String(discordCode) === '10011') {
+      hint = 'A target role was not found. Run /setup-server again after checking Manage Roles and role hierarchy.';
+    } else if (/Invalid Form Body|Expected a string/i.test(errorMessage)) {
+      hint = 'A required setting or message field may be empty. Check BOOKING_URL and GUEST_APPLICATION_URL in the hosting environment.';
+    }
+
+    const msg = `The /${commandName} command failed. Error code: ${discordCode}. ${hint}`;
     if (interaction.deferred || interaction.replied) await interaction.followUp({ content: msg, ephemeral: true }).catch(() => {});
     else await interaction.reply({ content: msg, ephemeral: true }).catch(() => {});
   }
