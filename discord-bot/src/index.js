@@ -18,6 +18,12 @@ const client = new Client({
 const APPLICATION_URL = process.env.GUEST_APPLICATION_URL;
 const BOOKING_URL = process.env.BOOKING_URL;
 const OWNER_USER_ID = process.env.OWNER_USER_ID || '';
+const BOT_VERSION = process.env.BOT_VERSION || require('../package.json').version || 'unknown';
+const DEPLOY_COMMIT = (process.env.DEPLOY_COMMIT || process.env.GITHUB_SHA || '').trim();
+const GITHUB_REPO = process.env.GITHUB_REPO || 'dospatch/real-talk-with-brandon-booking';
+const GITHUB_BRANCH = process.env.GITHUB_BRANCH || 'main';
+const STARTED_AT = new Date();
+const BUILD_ID = DEPLOY_COMMIT ? DEPLOY_COMMIT.slice(0, 7) : 'unknown';
 
 const ROLE_DEFS = [
   { name: 'Podcast Owner', color: 0xD4AF37, hoist: true },
@@ -147,6 +153,29 @@ async function ensureChannel(guild, category, def, privateStaff) {
   // when the bot cannot currently view/manage that channel.
   return channel;
 }
+async function getLatestGithubCommit() {
+  const headers = { Accept: 'application/vnd.github+json', 'User-Agent': 'Real-Talk-with-Brandon-Bot' };
+  if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
+  const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/commits/${encodeURIComponent(GITHUB_BRANCH)}`, { headers, signal: AbortSignal.timeout(8000) });
+  if (!response.ok) throw new Error(`GitHub returned HTTP ${response.status}`);
+  const data = await response.json();
+  return { sha: data.sha, message: (data.commit?.message || 'No commit message').split('\n')[0], date: data.commit?.committer?.date || data.commit?.author?.date || null, url: data.html_url };
+}
+function formatUptime(ms) {
+  const seconds = Math.floor(ms / 1000);
+  return `${Math.floor(seconds / 86400)}d ${Math.floor((seconds % 86400) / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+}
+function deploymentEmbed() {
+  return new EmbedBuilder().setColor(0x3498DB).setTitle('Real Talk with Brandon — Bot Status')
+    .addFields(
+      { name: 'Bot', value: '🟢 Online', inline: true },
+      { name: 'Version', value: String(BOT_VERSION), inline: true },
+      { name: 'Running build', value: BUILD_ID, inline: true },
+      { name: 'Uptime', value: formatUptime(Date.now() - STARTED_AT.getTime()), inline: true },
+      { name: 'Started at', value: STARTED_AT.toISOString(), inline: true },
+      { name: 'Deployment verification', value: DEPLOY_COMMIT ? 'Build commit is configured' : '⚠️ Unknown — host must set DEPLOY_COMMIT or GITHUB_SHA', inline: false }
+    ).setFooter({ text: 'GitHub updates do not automatically deploy to ACLClouds.' });
+}
 async function logToStaff(guild, message) {
   const ch = guild.channels.cache.find(c => c.name === 'staff-logs' && c.type === ChannelType.GuildText);
   if (ch) ch.send({ content: message }).catch(() => {});
@@ -163,6 +192,8 @@ async function sendBooking(user) {
 
 client.once(Events.ClientReady, async c => {
   console.log(`Logged in as ${c.user.tag}`);
+  console.log(`Deployment report: version=${BOT_VERSION}; build=${BUILD_ID}; started=${STARTED_AT.toISOString()}`);
+  if (!DEPLOY_COMMIT) console.warn('Deployment version is UNKNOWN: set DEPLOY_COMMIT or GITHUB_SHA in the hosting environment.');
 
   const clientId = process.env.CLIENT_ID;
   const guildId = process.env.GUILD_ID;
@@ -208,6 +239,26 @@ client.on(Events.InteractionCreate, async interaction => {
   const { commandName } = interaction;
 
   try {
+    if (commandName === 'bot-status') {
+      return interaction.reply({ embeds: [deploymentEmbed()], ephemeral: true });
+    }
+    if (commandName === 'deployment-status' || commandName === 'update-check') {
+      await interaction.deferReply({ ephemeral: true });
+      const latest = await getLatestGithubCommit();
+      const same = DEPLOY_COMMIT && DEPLOY_COMMIT.toLowerCase() === latest.sha.toLowerCase();
+      const embed = new EmbedBuilder().setColor(same ? 0x2ECC71 : 0xF1C40F)
+        .setTitle(commandName === 'update-check' ? 'GitHub Update Check' : 'Deployment Status')
+        .addFields(
+          { name: 'Currently running build', value: DEPLOY_COMMIT ? DEPLOY_COMMIT.slice(0, 12) : 'Unknown — set DEPLOY_COMMIT/GITHUB_SHA on the host', inline: false },
+          { name: 'Latest GitHub commit', value: latest.sha.slice(0, 12), inline: false },
+          { name: 'Latest commit message', value: latest.message.slice(0, 900), inline: false },
+          { name: 'Latest commit date', value: latest.date || 'Not provided', inline: false },
+          { name: 'Result', value: !DEPLOY_COMMIT ? '⚠️ GitHub is reachable, but the running build cannot be verified until the host supplies its deployed commit.' : same ? '✅ Running commit matches GitHub.' : '🔔 Running commit differs from GitHub. Updates are not installed automatically.', inline: false }
+        ).setURL(latest.url);
+      await interaction.editReply({ embeds: [embed] });
+      return;
+    }
+
     if (commandName === 'guest-help') {
       return interaction.reply({
         ephemeral: true,
@@ -215,7 +266,7 @@ client.on(Events.InteractionCreate, async interaction => {
       });
     }
 
-    if (['setup-server', 'approve-guest', 'decline-guest', 'send-booking', 'guest-complete'].includes(commandName) && !isOwnerOrAdmin(interaction)) {
+    if (['setup-server', 'approve-guest', 'decline-guest', 'send-booking', 'guest-complete', 'deployment-status', 'update-check'].includes(commandName) && !isOwnerOrAdmin(interaction)) {
       return interaction.reply({ content: 'Only the podcast owner or authorized server administrators can use this command.', ephemeral: true });
     }
 
