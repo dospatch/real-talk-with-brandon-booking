@@ -1,10 +1,81 @@
 require('dotenv').config();
+const fs = require('node:fs');
+const path = require('node:path');
 const {
   Client, GatewayIntentBits, ChannelType, PermissionsBitField,
   EmbedBuilder, Events, REST, Routes
 } = require('discord.js');
 
 const { commands } = require('./commands');
+
+const DATA_DIR = path.join(__dirname, '..', 'data');
+const SCHEDULES_FILE = path.join(DATA_DIR, 'guest-schedules.json');
+
+function readSchedules() {
+  try {
+    if (!fs.existsSync(SCHEDULES_FILE)) return [];
+    const data = JSON.parse(fs.readFileSync(SCHEDULES_FILE, 'utf8'));
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error('Could not read guest schedule file:', error);
+    return [];
+  }
+}
+
+function writeSchedules(schedules) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const tempFile = `${SCHEDULES_FILE}.tmp`;
+  fs.writeFileSync(tempFile, JSON.stringify(schedules, null, 2), 'utf8');
+  fs.renameSync(tempFile, SCHEDULES_FILE);
+}
+
+function formatStoredDateTime(value) {
+  return String(value || 'Date/time unavailable');
+}
+
+async function runReminderSweep() {
+  const schedules = readSchedules();
+  let changed = false;
+  const now = Date.now();
+
+  for (const item of schedules) {
+    if (item.status !== 'scheduled') continue;
+    const remaining = Number(item.startsAt) - now;
+    if (!Number.isFinite(remaining) || remaining <= 0) {
+      if (remaining <= 0) {
+        item.status = 'past_due';
+        changed = true;
+      }
+      continue;
+    }
+
+    let reminderKey = null;
+    let reminderText = '';
+    if (remaining <= 15 * 60 * 1000 && !item.reminders?.fifteenMinutes) {
+      reminderKey = 'fifteenMinutes';
+      reminderText = 'Your Real Talk with Brandon interview is coming up in about 15 minutes.';
+    } else if (remaining <= 60 * 60 * 1000 && !item.reminders?.oneHour) {
+      reminderKey = 'oneHour';
+      reminderText = 'Your Real Talk with Brandon interview is coming up within the next hour.';
+    } else if (remaining <= 24 * 60 * 60 * 1000 && !item.reminders?.oneDay) {
+      reminderKey = 'oneDay';
+      reminderText = 'Your Real Talk with Brandon interview is coming up within the next 24 hours.';
+    }
+
+    if (!reminderKey) continue;
+    try {
+      const user = await client.users.fetch(item.userId);
+      await user.send(`${reminderText}\n\nScheduled time (as entered): ${formatStoredDateTime(item.displayDateTime)}\nBooking link: ${BOOKING_URL}`);
+      item.reminders = { ...(item.reminders || {}), [reminderKey]: true };
+      changed = true;
+      console.log(`Sent ${reminderKey} reminder to guest ${item.userId} for schedule ${item.id}.`);
+    } catch (error) {
+      console.error(`Reminder send failed for guest ${item.userId} (schedule ${item.id}):`, error?.message || error);
+    }
+  }
+
+  if (changed) writeSchedules(schedules);
+}
 
 const client = new Client({
   intents: [
@@ -194,6 +265,8 @@ client.once(Events.ClientReady, async c => {
   console.log(`Logged in as ${c.user.tag}`);
   console.log(`Deployment report: version=${BOT_VERSION}; build=${BUILD_ID}; started=${STARTED_AT.toISOString()}`);
   if (!DEPLOY_COMMIT) console.warn('Deployment version is UNKNOWN: set DEPLOY_COMMIT or GITHUB_SHA in the hosting environment.');
+  setInterval(() => runReminderSweep().catch(error => console.error('Reminder sweep failed:', error)), 60_000);
+  runReminderSweep().catch(error => console.error('Initial reminder sweep failed:', error));
 
   const clientId = process.env.CLIENT_ID;
   const guildId = process.env.GUILD_ID;
@@ -266,7 +339,7 @@ client.on(Events.InteractionCreate, async interaction => {
       });
     }
 
-    if (['setup-server', 'approve-guest', 'decline-guest', 'send-booking', 'guest-complete', 'deployment-status', 'update-check'].includes(commandName) && !isOwnerOrAdmin(interaction)) {
+    if (['setup-server', 'approve-guest', 'decline-guest', 'send-booking', 'guest-complete', 'schedule-guest', 'deployment-status', 'update-check'].includes(commandName) && !isOwnerOrAdmin(interaction)) {
       return interaction.reply({ content: 'Only the podcast owner or authorized server administrators can use this command.', ephemeral: true });
     }
 
@@ -345,16 +418,69 @@ client.on(Events.InteractionCreate, async interaction => {
       return interaction.reply({ content: `Sent the booking link privately to ${guest}.`, ephemeral: true });
     }
 
+    if (commandName === 'schedule-guest') {
+      const guest = interaction.options.getUser('guest', true);
+      const rawDateTime = interaction.options.getString('datetime', true).trim();
+      const topic = interaction.options.getString('topic') || 'Interview topic to be confirmed';
+      if (!/(Z|[+-]\\d{2}:\\d{2})$/i.test(rawDateTime)) {
+        return interaction.reply({ content: 'Include a timezone in the date/time, such as 2026-10-20T18:00:00-05:00 or 2026-10-20T23:00:00Z.', ephemeral: true });
+      }
+      const startsAt = new Date(rawDateTime).getTime();
+      if (!Number.isFinite(startsAt) || startsAt <= Date.now()) {
+        return interaction.reply({ content: 'Enter a valid interview date and time in the future.', ephemeral: true });
+      }
+      const member = await interaction.guild.members.fetch(guest.id).catch(() => null);
+      const approvedRole = await findRole(interaction.guild, 'Approved Guest');
+      if (!member || !approvedRole || !member.roles.cache.has(approvedRole.id)) {
+        return interaction.reply({ content: 'Approve this guest first, and make sure they have the Approved Guest role.', ephemeral: true });
+      }
+
+      const schedules = readSchedules();
+      const item = {
+        id: `${interaction.guildId}-${guest.id}-${startsAt}`,
+        guildId: interaction.guildId,
+        userId: guest.id,
+        topic,
+        displayDateTime: rawDateTime,
+        startsAt,
+        status: 'scheduled',
+        reminders: {}
+      };
+      schedules.push(item);
+      writeSchedules(schedules);
+
+      await guest.send(`Your Real Talk with Brandon interview has been scheduled.\n\n**Time as entered:** ${rawDateTime}\n**Topic:** ${topic}\n\nBooking details: ${BOOKING_URL}\nYou will receive automatic reminders before the interview.`).catch(() => {});
+      await logToStaff(interaction.guild, `Interview scheduled for ${guest.tag} by ${interaction.user.tag}. Time: ${rawDateTime}. Topic: ${topic}.`);
+      return interaction.reply({ content: `Scheduled ${guest} for ${rawDateTime}. Automatic reminders are enabled while the bot is running and its schedule file is preserved.`, ephemeral: true });
+    }
+
     if (commandName === 'guest-complete') {
       const guest = interaction.options.getUser('guest', true);
       const member = await interaction.guild.members.fetch(guest.id).catch(() => null);
       if (!member) return interaction.reply({ content: 'That user is not a member of this server.', ephemeral: true });
       const pastRole = await findRole(interaction.guild, 'Past Guest');
       const approvedRole = await findRole(interaction.guild, 'Approved Guest');
+      const alreadyPastGuest = Boolean(pastRole && member.roles.cache.has(pastRole.id));
       if (pastRole) await member.roles.add(pastRole);
       if (approvedRole) await member.roles.remove(approvedRole).catch(() => {});
+
+      if (!alreadyPastGuest) {
+        const pastChannel = interaction.guild.channels.cache.find(c => c.name === 'past-guests' && c.type === ChannelType.GuildText);
+        if (pastChannel) {
+          await pastChannel.send({
+            embeds: [new EmbedBuilder()
+              .setColor(0x9B59B6)
+              .setTitle('Past Guest Spotlight')
+              .setDescription(`Thank you to ${guest} for joining **Real Talk with Brandon**!\n\nReal Conversations. Real Stories. Real People.`)
+              .addFields({ name: 'Guest', value: `${guest.tag} (${guest.id})` })
+              .setFooter({ text: 'Real Talk with Brandon • Past Guest Directory' })]
+          });
+        } else {
+          console.warn('Could not publish past guest spotlight: #past-guests was not found.');
+        }
+      }
       await logToStaff(interaction.guild, `${guest.tag} marked as a Past Guest by ${interaction.user.tag}.`);
-      return interaction.reply({ content: `Marked ${guest} as a Past Guest.`, ephemeral: true });
+      return interaction.reply({ content: alreadyPastGuest ? `${guest} already has the Past Guest role; no duplicate directory post was created.` : `Marked ${guest} as a Past Guest and published them to #past-guests.`, ephemeral: true });
     }
   } catch (error) {
     const discordCode = error?.code ?? error?.rawError?.code ?? 'unknown';
