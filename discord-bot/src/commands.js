@@ -29,6 +29,18 @@ const commands = [
     .addUserOption(o => o.setName('guest').setDescription('Guest who completed an interview').setRequired(true)),
 
   new SlashCommandBuilder()
+    .setName('bot-status')
+    .setDescription('Show bot uptime, running version, and deployment verification status.'),
+
+  new SlashCommandBuilder()
+    .setName('deployment-status')
+    .setDescription('Compare the running build with the latest GitHub commit.'),
+
+  new SlashCommandBuilder()
+    .setName('update-check')
+    .setDescription('Check whether GitHub has a newer commit than the running build.'),
+
+  new SlashCommandBuilder()
     .setName('guest-help')
     .setDescription('Show the guest application and approval process.')
 ].map(c => c.toJSON());
