@@ -1,107 +1,75 @@
-# Real Talk with Brandon
+🎙️ Real Talk with Brandon
 
-Discord bot and booking workflow for the **Real Talk with Brandon** community. The bot supports guest help, application review, booking links, interview scheduling, reminders, and deployment checks.
+Real Conversations. Real Experiences. Real Stories.
 
-## ACLClouds / Pterodactyl deployment
+About the Project
 
-The repository root includes `index.js` and `package.json` so a Node.js hosting panel configured with `MAIN_FILE=index.js` can start the bot from the repository root. The main bot implementation remains under `discord-bot/src/`.
+Welcome to Real Talk with Brandon, a podcast and interview project built around sharing stories, learning from others, and creating meaningful conversations.
 
-### 1. Deploy the repository
+This project includes a Discord bot designed to help manage the behind-the-scenes work of running the Real Talk with Brandon community. From guest applications to interview scheduling, the bot helps keep the process organized so more attention can be given to the people and stories being shared.
 
-Upload or deploy the repository contents into `/home/container/`, preserving the `discord-bot/` folder.
+💬 What Does the Bot Do?
 
-Confirm these files exist:
+The Real Talk with Brandon Discord bot helps manage the guest experience and interview workflow.
 
-- `/home/container/index.js`
-- `/home/container/package.json`
-- `/home/container/discord-bot/src/index.js`
-- `/home/container/discord-bot/src/commands.js`
-- `/home/container/discord-bot/package.json`
+- Guest Applications: Helps organize the process of receiving and reviewing applications from people interested in appearing on the show.
+- Application Decisions: Allows authorized staff to approve or decline guest applications.
+- Booking Links: Sends approved guests the information they need to book an interview.
+- Interview Scheduling: Helps schedule interviews and manage configured reminders.
+- Interview Tracking: Allows staff to mark interviews as completed.
+- Bot Status: Provides commands to check whether the bot is online.
+- Update Monitoring: Helps check the running version against the latest GitHub commit.
 
-### 2. Configure Startup
+The goal is to make guest coordination easier, improve organization, and provide a smoother experience for both guests and the team.
 
-In the ACLClouds / Pterodactyl Startup settings, set:
+🎤 The Vision Behind Real Talk with Brandon
 
-- `MAIN_FILE=index.js`
+Real Talk with Brandon is about giving people an opportunity to share their experiences, talk about their journeys, and connect with others through honest conversations.
 
-Use the repository root entry point. It loads `discord-bot/src/index.js`.
+Every person has a story worth hearing. This project aims to help create an organized space where guests can prepare for interviews and where meaningful discussions can take place.
 
-If the panel reports `main file 'index.js' not found`, check the **Files** page and make sure the root `index.js` and `package.json` are uploaded to the exact directory the server starts in.
+The Discord bot supports that vision by handling important organizational tasks behind the scenes.
 
-### 3. Configure environment variables
+⚙️ How It Works
 
-Set the following values in the hosting panel or in a private root `.env` file:
+The bot supports a straightforward guest workflow:
 
-- `DISCORD_TOKEN` (or `DISCORD_BOT_TOKEN`)
-- `CLIENT_ID`
-- `GUILD_ID`
-- `OWNER_USER_ID`
-- `GUEST_APPLICATION_URL`
-- `BOOKING_URL`
+1. A prospective guest submits an application.
+2. An authorized team member reviews the application.
+3. The guest receives an approval or decline decision.
+4. Approved guests receive the booking link.
+5. An interview is scheduled.
+6. Configured reminders help keep the interview on track.
+7. Staff mark the interview as completed.
 
-The deployment-status check can also use `GITHUB_TOKEN` to read the latest commit from the private GitHub repository. Use a narrowly scoped token with read-only repository contents access where supported.
+The level of automation depends on the bot's implementation and configuration.
 
-**Security:** Never commit or publish `.env`, Discord bot tokens, GitHub tokens, or other credentials. Keep secrets in the hosting panel or a private local file. If a token is exposed, revoke it and create a replacement.
+🛠️ Technology
 
-### 4. Start and verify
+The project uses:
 
-Start or restart the server from the hosting panel and check the console for successful bot login and command registration. In Discord, run:
+- JavaScript and Node.js to run the bot.
+- Discord API to interact with the Discord community.
+- GitHub to maintain the source code and track updates.
+- ACLClouds / Pterodactyl for hosting when configured.
 
-- `/bot-status` — check whether the bot is online.
-- `/deployment-status` — compare the running build with the latest GitHub commit.
-- `/update-check` — check for a newer repository commit.
+🚀 Project Goals
 
-A matching commit means the running build matches the latest commit reported by GitHub; it does not by itself prove every feature has been tested.
+- Make podcast guest management easier.
+- Keep interview scheduling organized.
+- Improve communication with guests.
+- Reduce repetitive administrative work.
+- Maintain a reliable and manageable Discord bot.
+- Continue improving the tools that support Real Talk with Brandon.
 
-If the hosting panel does not automatically deploy new commits, upload or deploy the latest repository contents and restart the server after merging changes into `main`.
+🔒 Security
 
-## Required environment variables
+The bot uses environment variables for sensitive configuration, including Discord credentials. Tokens and other secrets should remain private and must never be committed to the public repository.
 
-| Variable | Purpose |
-| --- | --- |
-| `DISCORD_TOKEN` or `DISCORD_BOT_TOKEN` | Authenticates the Discord bot |
-| `CLIENT_ID` | Discord application ID |
-| `GUILD_ID` | Discord server ID for guild commands |
-| `OWNER_USER_ID` | Bot owner's Discord user ID |
-| `GUEST_APPLICATION_URL` | Guest application form URL |
-| `BOOKING_URL` | Booking page URL |
-| `GITHUB_TOKEN` | Optional; read-only GitHub API access for deployment checks |
+❤️ The Mission
 
-Keep values private. Do not paste token values into issues, chat messages, screenshots, or commits.
+Real Talk with Brandon is more than a booking workflow. It's about people, experiences, and conversations that matter.
 
-## Local run
+The bot is one part of the project, helping organize the work behind each interview so the focus can remain on what matters most: giving people a chance to tell their stories.
 
-From the repository root, install dependencies and start the bot:
-
-```bash
-npm install
-npm start
-```
-
-Use the required environment variables from a private `.env` file or your shell environment before starting locally.
-
-## Bot commands
-
-### Guest workflow
-
-- `/setup-server` — set up the server's bot workflow.
-- `/guest-help` — show guests how to use the application and booking process.
-- `/approve-guest` — approve a guest application.
-- `/decline-guest` — decline a guest application.
-- `/send-booking` — send the booking link to an approved guest.
-- `/schedule-guest` — schedule an interview and trigger the configured reminders.
-- `/guest-complete` — mark a guest interview as completed.
-
-### Bot and deployment checks
-
-- `/bot-status` — check bot status.
-- `/deployment-status` — view the running build and latest GitHub commit.
-- `/update-check` — check whether a newer commit is available.
-
-Administrative commands may be restricted to the bot owner or authorized staff. Use the permissions configured in the bot and Discord server.
-
-## Interview scheduling notes
-
-- Provide a valid ISO 8601 date/time with a timezone offset when scheduling, for example `2026-10-20T18:00:00-05:00`.
-- The bot prevents a second active scheduled interview for the same guest in the same server.
-- Scheduled reminders depend on the bot staying online and the schedule data remaining available on the host. Keep the bot's data directory persistent when redeploying or replacing files.
+Welcome to Real Talk with Brandon. 🎙️
