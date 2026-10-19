@@ -422,7 +422,7 @@ client.on(Events.InteractionCreate, async interaction => {
       const guest = interaction.options.getUser('guest', true);
       const rawDateTime = interaction.options.getString('datetime', true).trim();
       const topic = interaction.options.getString('topic') || 'Interview topic to be confirmed';
-      if (!/(Z|[+-]\\d{2}:\\d{2})$/i.test(rawDateTime)) {
+      if (!/(Z|[+-]\d{2}:\d{2})$/i.test(rawDateTime)) {
         return interaction.reply({ content: 'Include a timezone in the date/time, such as 2026-10-20T18:00:00-05:00 or 2026-10-20T23:00:00Z.', ephemeral: true });
       }
       const startsAt = new Date(rawDateTime).getTime();
@@ -436,6 +436,15 @@ client.on(Events.InteractionCreate, async interaction => {
       }
 
       const schedules = readSchedules();
+      const duplicate = schedules.find(existing =>
+        existing.guildId === interaction.guildId &&
+        existing.userId === guest.id &&
+        existing.status === 'scheduled'
+      );
+      if (duplicate) {
+        return interaction.reply({ content: `This guest already has a scheduled interview (${duplicate.displayDateTime}). Mark that interview complete or past due before creating another schedule.`, ephemeral: true });
+      }
+
       const item = {
         id: `${interaction.guildId}-${guest.id}-${startsAt}`,
         guildId: interaction.guildId,
