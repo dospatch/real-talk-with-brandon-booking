@@ -73,3 +73,7 @@ Real Talk with Brandon is more than a booking workflow. It's about people, exper
 The bot is one part of the project, helping organize the work behind each interview so the focus can remain on what matters most: giving people a chance to tell their stories.
 
 Welcome to Real Talk with Brandon. 🎙️
+
+Guest application tracking
+
+Staff can use `/track-application` to create or update a record, `/application-status` to review one record, and `/list-applications` to see records or filter by status. Records are stored in `discord-bot/data/guest-applications.json`. Approval, decline, interview scheduling, and completion commands update records automatically. External form submissions are not automatically imported unless a webhook/integration is configured. Keep the host data directory persistent across redeployments and avoid storing sensitive personal answers in staff notes.
