@@ -36,6 +36,27 @@ const commands = [
     .addStringOption(o => o.setName('topic').setDescription('Interview topic (optional)').setRequired(false)),
 
   new SlashCommandBuilder()
+    .setName('track-application')
+    .setDescription('Create or update a guest application record (staff only).')
+    .addUserOption(o => o.setName('guest').setDescription('Applicant Discord user').setRequired(true))
+    .addStringOption(o => o.setName('status').setDescription('Current application status').setRequired(true).addChoices(
+      { name: 'Submitted', value: 'submitted' }, { name: 'Under review', value: 'under_review' }, { name: 'Approved', value: 'approved' },
+      { name: 'Declined', value: 'declined' }, { name: 'Interview scheduled', value: 'interview_scheduled' }, { name: 'Completed', value: 'completed' }))
+    .addStringOption(o => o.setName('notes').setDescription('Private staff notes (optional)').setMaxLength(1000).setRequired(false)),
+
+  new SlashCommandBuilder()
+    .setName('application-status')
+    .setDescription('View one guest application record privately (staff only).')
+    .addUserOption(o => o.setName('guest').setDescription('Applicant Discord user').setRequired(true)),
+
+  new SlashCommandBuilder()
+    .setName('list-applications')
+    .setDescription('List tracked guest applications privately (staff only).')
+    .addStringOption(o => o.setName('status').setDescription('Filter by status (default: all)').setRequired(false).addChoices(
+      { name: 'All', value: 'all' }, { name: 'Submitted', value: 'submitted' }, { name: 'Under review', value: 'under_review' },
+      { name: 'Approved', value: 'approved' }, { name: 'Declined', value: 'declined' }, { name: 'Interview scheduled', value: 'interview_scheduled' }, { name: 'Completed', value: 'completed' })),
+
+  new SlashCommandBuilder()
     .setName('bot-status')
     .setDescription('Show bot uptime, running version, and deployment verification status.'),
 
