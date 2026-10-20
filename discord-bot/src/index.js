@@ -10,6 +10,40 @@ const { commands } = require('./commands');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const SCHEDULES_FILE = path.join(DATA_DIR, 'guest-schedules.json');
+const APPLICATIONS_FILE = path.join(DATA_DIR, 'guest-applications.json');
+const APPLICATION_STATUSES = ['submitted', 'under_review', 'approved', 'declined', 'interview_scheduled', 'completed'];
+
+function readApplications() {
+  try {
+    if (!fs.existsSync(APPLICATIONS_FILE)) return [];
+    const data = JSON.parse(fs.readFileSync(APPLICATIONS_FILE, 'utf8'));
+    return Array.isArray(data) ? data : [];
+  } catch (error) { console.error('Could not read guest application file:', error); return []; }
+}
+function writeApplications(applications) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const tempFile = APPLICATIONS_FILE + '.tmp';
+  fs.writeFileSync(tempFile, JSON.stringify(applications, null, 2), 'utf8');
+  fs.renameSync(tempFile, APPLICATIONS_FILE);
+}
+function findApplication(applications, guildId, userId) {
+  return applications.find(item => item.guildId === guildId && item.userId === userId);
+}
+function upsertApplication(guildId, user, status, notes, actorId) {
+  const applications = readApplications();
+  let item = findApplication(applications, guildId, user.id);
+  const now = new Date().toISOString();
+  if (!item) { item = { id: guildId + '-' + user.id, guildId, userId: user.id, username: user.tag || user.username || user.id, status, createdAt: now, updatedAt: now, history: [] }; applications.push(item); }
+  item.username = user.tag || user.username || user.id; item.status = status; item.updatedAt = now; item.lastUpdatedBy = actorId || null;
+  if (notes) item.notes = notes.slice(0, 1000);
+  item.history = Array.isArray(item.history) ? item.history : [];
+  item.history.push({ status, at: now, by: actorId || null, notes: notes ? notes.slice(0, 1000) : null });
+  writeApplications(applications); return item;
+}
+function applicationStatusLabel(status) {
+  return ({ submitted: 'Submitted', under_review: 'Under review', approved: 'Approved', declined: 'Declined', interview_scheduled: 'Interview scheduled', completed: 'Completed' })[status] || status;
+}
+
 
 function readSchedules() {
   try {
@@ -332,6 +366,41 @@ client.on(Events.InteractionCreate, async interaction => {
       return;
     }
 
+    if (commandName === 'track-application') {
+      const guest = interaction.options.getUser('guest', true);
+      const status = interaction.options.getString('status', true);
+      const notes = interaction.options.getString('notes') || '';
+      const item = upsertApplication(interaction.guildId, guest, status, notes, interaction.user.id);
+      const member = await interaction.guild.members.fetch(guest.id).catch(() => null);
+      const applicantRole = await findRole(interaction.guild, 'Guest Applicant');
+      const approvedRole = await findRole(interaction.guild, 'Approved Guest');
+      if (member && status === 'submitted' && applicantRole) await member.roles.add(applicantRole).catch(() => {});
+      if (member && ['approved', 'interview_scheduled'].includes(status) && approvedRole) await member.roles.add(approvedRole).catch(() => {});
+      await logToStaff(interaction.guild, 'Application tracked: ' + guest.tag + ' → ' + applicationStatusLabel(status) + ' by ' + interaction.user.tag + '.');
+      return interaction.reply({ content: 'Saved application for ' + guest + ': **' + applicationStatusLabel(item.status) + '**.', ephemeral: true });
+    }
+    if (commandName === 'application-status') {
+      const guest = interaction.options.getUser('guest', true);
+      const item = findApplication(readApplications(), interaction.guildId, guest.id);
+      if (!item) return interaction.reply({ content: 'No application record found for ' + guest + '. Use /track-application to add one.', ephemeral: true });
+      const history = (item.history || []).slice(-5).reverse().map(x => '• ' + applicationStatusLabel(x.status) + ' — ' + x.at).join('\n') || 'No history recorded.';
+      const embed = new EmbedBuilder().setColor(0x3498DB).setTitle('Guest Application Record').addFields(
+        { name: 'Guest', value: guest.tag + ' (' + guest.id + ')' },
+        { name: 'Status', value: applicationStatusLabel(item.status), inline: true },
+        { name: 'Last updated', value: item.updatedAt || 'Unknown', inline: true },
+        { name: 'Private notes', value: (item.notes || 'No notes recorded.').slice(0, 1000) },
+        { name: 'Recent history', value: history.slice(0, 1000) });
+      return interaction.reply({ embeds: [embed], ephemeral: true });
+    }
+    if (commandName === 'list-applications') {
+      const filter = interaction.options.getString('status') || 'all';
+      const items = readApplications().filter(x => x.guildId === interaction.guildId && (filter === 'all' || x.status === filter)).sort((a,b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+      if (!items.length) return interaction.reply({ content: 'No application records match that filter yet.', ephemeral: true });
+      const lines = items.slice(0, 20).map(x => '• <@' + x.userId + '> — **' + applicationStatusLabel(x.status) + '** — ' + String(x.updatedAt || '').slice(0,10));
+      const embed = new EmbedBuilder().setColor(0x3498DB).setTitle('Guest Applications (' + items.length + ')').setDescription(lines.join('\n')).setFooter({ text: items.length > 20 ? 'Showing 20 most recently updated records.' : 'Private staff view • records stored on host.' });
+      return interaction.reply({ embeds: [embed], ephemeral: true });
+    }
+
     if (commandName === 'guest-help') {
       return interaction.reply({
         ephemeral: true,
@@ -339,7 +408,7 @@ client.on(Events.InteractionCreate, async interaction => {
       });
     }
 
-    if (['setup-server', 'approve-guest', 'decline-guest', 'send-booking', 'guest-complete', 'schedule-guest', 'deployment-status', 'update-check'].includes(commandName) && !isOwnerOrAdmin(interaction)) {
+    if (['setup-server', 'approve-guest', 'decline-guest', 'send-booking', 'guest-complete', 'schedule-guest', 'track-application', 'application-status', 'list-applications', 'deployment-status', 'update-check'].includes(commandName) && !isOwnerOrAdmin(interaction)) {
       return interaction.reply({ content: 'Only the podcast owner or authorized server administrators can use this command.', ephemeral: true });
     }
 
@@ -378,6 +447,7 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (commandName === 'approve-guest') {
+      upsertApplication(interaction.guildId, interaction.options.getUser('guest', true), 'approved', interaction.options.getString('notes') || '', interaction.user.id);
       const guest = interaction.options.getUser('guest', true);
       const notes = interaction.options.getString('notes') || 'No notes added.';
       const member = await interaction.guild.members.fetch(guest.id).catch(() => null);
@@ -397,6 +467,7 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (commandName === 'decline-guest') {
+      upsertApplication(interaction.guildId, interaction.options.getUser('guest', true), 'declined', interaction.options.getString('reason') || '', interaction.user.id);
       const guest = interaction.options.getUser('guest', true);
       const reason = interaction.options.getString('reason') || 'Thank you for applying to Real Talk with Brandon. We are unable to move forward with your application at this time. We appreciate your interest and wish you the best.';
       try {
@@ -457,6 +528,7 @@ client.on(Events.InteractionCreate, async interaction => {
       };
       schedules.push(item);
       writeSchedules(schedules);
+      upsertApplication(interaction.guildId, guest, 'interview_scheduled', 'Interview scheduled for ' + rawDateTime + '. Topic: ' + topic, interaction.user.id);
 
       await guest.send(`Your Real Talk with Brandon interview has been scheduled.\n\n**Time as entered:** ${rawDateTime}\n**Topic:** ${topic}\n\nBooking details: ${BOOKING_URL}\nYou will receive automatic reminders before the interview.`).catch(() => {});
       await logToStaff(interaction.guild, `Interview scheduled for ${guest.tag} by ${interaction.user.tag}. Time: ${rawDateTime}. Topic: ${topic}.`);
@@ -464,6 +536,7 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 
     if (commandName === 'guest-complete') {
+      upsertApplication(interaction.guildId, interaction.options.getUser('guest', true), 'completed', 'Interview marked complete.', interaction.user.id);
       const guest = interaction.options.getUser('guest', true);
       const member = await interaction.guild.members.fetch(guest.id).catch(() => null);
       if (!member) return interaction.reply({ content: 'That user is not a member of this server.', ephemeral: true });
