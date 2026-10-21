@@ -77,3 +77,10 @@ Welcome to Real Talk with Brandon. 🎙️
 Guest application tracking
 
 Staff can use `/track-application` to create or update a record, `/application-status` to review one record, and `/list-applications` to see records or filter by status. Records are stored in `discord-bot/data/guest-applications.json`. Approval, decline, interview scheduling, and completion commands update records automatically. External form submissions are not automatically imported unless a webhook/integration is configured. Keep the host data directory persistent across redeployments and avoid storing sensitive personal answers in staff notes.
+
+
+🌐 Guest application website
+
+The `web/` directory contains a separate Next.js guest application website and private staff dashboard. It uses PostgreSQL for website application records, a Discord webhook for staff notifications, and Resend for applicant emails. Setup and environment variables are documented in [`web/README.md`](web/README.md).
+
+The website is a separate app and must be deployed as a separate Vercel project with its Root Directory set to `web`. Keep the repository root and its existing Node.js entry point unchanged for the Discord bot host. The website's PostgreSQL records are separate from the bot's local JSON tracking records; the first version synchronizes notifications, not the bot's local JSON database.
