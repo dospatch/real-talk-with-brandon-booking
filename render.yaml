@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: real-talk-with-brandon-bot
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: CLIENT_ID
+        sync: false
+      - key: GUILD_ID
+        sync: false
+      - key: GUEST_APPLICATION_URL
+        sync: false
+      - key: BOOKING_URL
+        sync: false
+      - key: OWNER_USER_ID
+        sync: false
+      - key: GITHUB_REPO
+        value: dospatch/real-talk-with-brandon-booking
+      - key: GITHUB_BRANCH
+        value: main
