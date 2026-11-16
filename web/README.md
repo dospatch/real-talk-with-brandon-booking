@@ -17,6 +17,7 @@ Copy `.env.example` to your deployment's environment settings and configure:
 - `RESEND_API_KEY`: Resend API key for email delivery.
 - `EMAIL_FROM`: a sender address on a domain verified with Resend.
 - `NEXT_PUBLIC_SITE_URL`: optional public site URL used in Discord notifications.
+- `BOOKING_URL`: Google Calendar appointment-scheduling link sent to applicants when staff accept an application. Defaults to the current Real Talk with Brandon booking page.
 
 The database table is created automatically when the API is first used. No email is sent during build. If the email or Discord provider is not configured, the application can still be saved but those notifications won't be delivered; configure and test both before public launch.
 
