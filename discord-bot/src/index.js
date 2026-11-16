@@ -121,7 +121,7 @@ const client = new Client({
 });
 
 const APPLICATION_URL = process.env.GUEST_APPLICATION_URL;
-const BOOKING_URL = process.env.BOOKING_URL || 'https://calendar.app.google/G3jWv5C3ikmbwxXs8';
+const BOOKING_URL = process.env.BOOKING_URL || 'https://calendar.app.google/TbraiQqQtypEeQfx7';
 const OWNER_USER_ID = process.env.OWNER_USER_ID || '';
 const BOT_VERSION = process.env.BOT_VERSION || require('../package.json').version || 'unknown';
 const DEPLOY_COMMIT = (process.env.DEPLOY_COMMIT || process.env.GITHUB_SHA || '').trim();
