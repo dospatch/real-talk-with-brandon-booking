@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 
-const initialForm = { name: '', introName: '', email: '', about: '', topic: '', avoidTopics: '', availability: '', links: '', details: '' };
+const initialForm = { name: '', introName: '', email: '', about: '', background: '', topic: '', avoidTopics: '', availability: '', links: '', details: '' };
 
 export default function Home() {
   const [form, setForm] = useState(initialForm);
@@ -34,8 +34,8 @@ export default function Home() {
         <label>What name would you like me to use when introducing you? <span className="optional">(optional)</span><input name="introName" value={form.introName} onChange={change} maxLength={120} placeholder="Your preferred introduction name"/></label>
         <label>Email address<input name="email" type="email" autoComplete="email" value={form.email} onChange={change} required maxLength={254} placeholder="you@example.com"/></label>
         <label>Tell us a little about yourself or your work<textarea name="about" value={form.about} onChange={change} required maxLength={3000} rows={4} placeholder="Your background, work, interests, or personal journey"/></label>
-        <label>What is your story, background, or area of interest? <span className="optional">(optional)</span><textarea name="topic" value={form.topic} onChange={change} required maxLength={1800} rows={3} placeholder="What would you like listeners to learn about you?"/></label>
-        <label>What would you like us to discuss? <span className="optional">(optional)</span><textarea name="topic" value={form.topic} onChange={change} maxLength={1800} rows={3} placeholder="Topics, experiences, projects, or ideas"/></label>
+        <label>What is your story, background, or area of interest? <span className="optional">(optional)</span><textarea name="background" value={form.background} onChange={change} maxLength={1800} rows={3} placeholder="What would you like listeners to learn about you?"/></label>
+        <label>What would you like us to discuss?<textarea name="topic" value={form.topic} onChange={change} required maxLength={1800} rows={3} placeholder="Topics, experiences, projects, or ideas"/></label>
         <label>Are there any subjects you would prefer not to discuss? <span className="optional">(optional)</span><textarea name="avoidTopics" value={form.avoidTopics} onChange={change} maxLength={1500} rows={2} placeholder="You can leave this blank if there are none"/></label>
         <label>Availability<textarea name="availability" value={form.availability} onChange={change} required maxLength={1500} rows={3} placeholder="Days, times, and time zone"/></label>
         <label>Website, YouTube, social media, or project links <span className="optional">(optional)</span><input name="links" value={form.links} onChange={change} maxLength={1000} placeholder="Links we can review"/></label>
