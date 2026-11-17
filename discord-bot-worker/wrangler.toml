@@ -11,7 +11,7 @@ OWNER_USER_ID = ""
 [[d1_databases]]
 binding = "DB"
 database_name = "real-talk-with-brandon"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "c26836dd-c5ec-4b7e-a75b-56c9572818c6"
 
 [triggers]
 crons = ["*/5 * * * *"]
