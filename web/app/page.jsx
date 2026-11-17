@@ -5,16 +5,16 @@ const initialForm = { name: '', introName: '', email: '', about: '', background:
 
 export default function Home() {
   const [form, setForm] = useState(initialForm);
-  const [state, setState] = useState({ busy: false, message: '', error: false });
+  const [state, setState] = useState({ busy: false, message: '', error: false, submitted: false });
   function change(e) { setForm({ ...form, [e.target.name]: e.target.value }); }
   async function submit(e) {
-    e.preventDefault(); setState({ busy: true, message: '', error: false });
+    e.preventDefault(); setState({ busy: true, message: '', error: false, submitted: false });
     try {
       const res = await fetch('/api/applications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not submit your application.');
       setForm(initialForm);
-      setState({ busy: false, message: `Application submitted! Your reference number is ${data.id}.`, error: false });
+      setState({ busy: false, message: `Application submitted! Your reference number is ${data.id}.`, error: false, submitted: true });
     } catch (err) { setState({ busy: false, message: err.message || 'Something went wrong.', error: true }); }
   }
   return <main className="shell">
@@ -42,6 +42,7 @@ export default function Home() {
         <label>Anything special you would like listeners to know? <span className="optional">(optional)</span><textarea name="details" value={form.details} onChange={change} maxLength={3000} rows={3} placeholder="Anything else you want to share"/></label>
         <button disabled={state.busy}>{state.busy ? 'Submitting…' : 'Submit application'} <span>→</span></button>
         {state.message && <p role="status" className={state.error ? 'notice error' : 'notice'}>{state.message}</p>}
+        {state.submitted && process.env.NEXT_PUBLIC_DISCORD_INVITE_URL && <div className="after-submit"><p>Your application is in! Join the Real Talk with Brandon Discord community to stay connected while the team reviews your application.</p><a className="discord-join" href={process.env.NEXT_PUBLIC_DISCORD_INVITE_URL} target="_blank" rel="noreferrer">Join our Discord community <span>↗</span></a></div>}
         <p className="privacy">Your application is reviewed by the Real Talk with Brandon team. If accepted, you will receive an email with the interview booking link. Interviews are approximately 60 minutes and take place online through Google Meet. You may identify subjects you prefer not to discuss.</p>
       </form>
     </section>
