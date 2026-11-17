@@ -10,7 +10,11 @@ export async function ensureSchema(sql) {
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(120) NOT NULL,
     email VARCHAR(254) NOT NULL,
-    topic VARCHAR(180) NOT NULL,
+    intro_name VARCHAR(120) NOT NULL DEFAULT '',
+    about TEXT NOT NULL DEFAULT '',
+    background TEXT NOT NULL DEFAULT '',
+    topic TEXT NOT NULL,
+    avoid_topics TEXT NOT NULL DEFAULT '',
     availability TEXT NOT NULL,
     links TEXT NOT NULL DEFAULT '',
     details TEXT NOT NULL DEFAULT '',
@@ -19,6 +23,11 @@ export async function ensureSchema(sql) {
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
+  await sql`ALTER TABLE guest_applications
+    ADD COLUMN IF NOT EXISTS intro_name VARCHAR(120) NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS about TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS background TEXT NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS avoid_topics TEXT NOT NULL DEFAULT ''`;
 }
 function signature(value) { return createHmac('sha256', process.env.SESSION_SECRET || '').update(value).digest('hex'); }
 export function validSession(request) {
