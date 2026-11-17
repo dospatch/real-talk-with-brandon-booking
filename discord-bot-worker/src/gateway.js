@@ -188,6 +188,7 @@ export class DiscordGateway {
         this.awaitingHeartbeatAck = false;
         break;
       case 1:
+        this.awaitingHeartbeatAck = true;
         this.send({ op: 1, d: this.sequence });
         break;
       case 7:
