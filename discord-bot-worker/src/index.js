@@ -1,3 +1,4 @@
+export { DiscordGateway } from "./gateway.js";
 const API = "https://discord.com/api/v10";
 const STATUS_LABELS = {
   submitted: "Submitted",
@@ -127,6 +128,15 @@ async function logStaff(env, guildId, message) {
       method: "POST", body: JSON.stringify({ content: message, allowed_mentions: { parse: [] } })
     });
   } catch (e) { console.log("Staff log unavailable:", e.message); }
+}
+async function gatewaySnapshot(env) {
+  try {
+    const id = env.GATEWAY.idFromName("real-talk-with-brandon");
+    const response = await env.GATEWAY.get(id).fetch("https://gateway/status");
+    return await response.json();
+  } catch (error) {
+    return { connected: false, gateway: "unavailable", lastError: String(error?.message || error) };
+  }
 }
 async function processCommand(interaction, env) {
   const name = interaction.data.name;
