@@ -30,6 +30,7 @@ export async function PATCH(request, context) {
     const discordText = `🔔 **Guest application updated**\n**Reference:** ${a.id}\n**Applicant:** ${a.name}\n**Status:** ${labels[status]}\n**Explanation:** ${explanationText}${status === 'accepted' ? `\n**Booking link:** ${BOOKING_URL}` : ''}`;
     await Promise.allSettled([
       sendEmail({to:a.email, subject:`Guest application update: ${labels[status]} (Ref ${a.id})`, text:emailText}),
+      sendEmail({to:process.env.ADMIN_EMAIL || 'Therealpodcastnetwork@gmail.com', subject:`Guest application ${labels[status]} — ${a.name} (Ref ${a.id})`, text:`A guest application status was updated.\n\nReference: ${a.id}\nGuest: ${a.name}\nGuest email: ${a.email}\nStatus: ${labels[status]}\nReview note: ${explanationText}${status === 'accepted' ? `\nBooking link: ${BOOKING_URL}` : ''}`}),
       notifyDiscord(discordText)
     ]);
     return NextResponse.json({application:a});
