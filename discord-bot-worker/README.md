@@ -3,7 +3,8 @@
 This is a separate HTTP-interactions implementation. The existing `discord-bot/` Gateway bot is intentionally preserved.
 
 ## Current feature scope
-- HTTP Discord interactions with Ed25519 request verification and PING handshake.\n- Experimental SQLite-backed Durable Object that opens a real outbound Discord Gateway WebSocket and requests online presence.
+- HTTP Discord interactions with Ed25519 request verification and PING handshake.
+- Experimental SQLite-backed Durable Object that opens a real outbound Discord Gateway WebSocket and requests online presence.
 - Guest help, application tracking, private status/history, approve/decline, booking-link DM, schedule, guest-complete, basic role setup.
 - D1-backed application history and interview schedules.
 - Five-minute scheduled reminder sweep for 24-hour, 1-hour, and 15-minute reminders.
@@ -14,7 +15,8 @@ The Durable Object Gateway work is an experimental prototype on a separate pull 
 1. Create a D1 database named `real-talk-with-brandon`.
 2. Replace `database_id` in `wrangler.toml` with the ID from Cloudflare.
 3. Run `npx wrangler d1 execute real-talk-with-brandon --remote --file=discord-bot-worker/schema.sql`.
-4. From this directory, deploy with `npx wrangler deploy`.\n5. The experimental Gateway branch adds a SQLite Durable Object binding and migration. Apply the migration by deploying that branch; the existing Worker branch does not contain it.
+4. From this directory, deploy with `npx wrangler deploy`.
+5. The experimental Gateway branch adds a SQLite Durable Object binding and migration. Apply the migration by deploying that branch; the existing Worker branch does not contain it.
 6. Add secrets:
    - `npx wrangler secret put DISCORD_TOKEN`
    - `npx wrangler secret put DISCORD_PUBLIC_KEY` (Discord Developer Portal > General Information > Public Key)
