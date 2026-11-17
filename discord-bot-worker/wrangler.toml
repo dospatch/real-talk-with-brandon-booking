@@ -1,0 +1,17 @@
+name = "real-talk-with-brandon-discord"
+main = "src/index.js"
+compatibility_date = "2026-11-17"
+
+[vars]
+APPLICATION_URL = "https://real-talk-with-brandon-booking.vercel.app/apply"
+BOOKING_URL = "https://calendar.app.google/x8oeprMxLAnDQrUi6"
+DISCORD_INVITE_URL = "https://discord.gg/BaktNA8mwv"
+OWNER_USER_ID = ""
+
+[[d1_databases]]
+binding = "DB"
+database_name = "real-talk-with-brandon"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[triggers]
+crons = ["*/5 * * * *"]
