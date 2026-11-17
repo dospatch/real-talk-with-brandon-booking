@@ -1,3 +1,4 @@
+export { DiscordGateway } from "./gateway.js";
 const API = "https://discord.com/api/v10";
 const STATUS_LABELS = {
   submitted: "Submitted",
@@ -128,6 +129,15 @@ async function logStaff(env, guildId, message) {
     });
   } catch (e) { console.log("Staff log unavailable:", e.message); }
 }
+async function gatewaySnapshot(env) {
+  try {
+    const id = env.GATEWAY.idFromName("real-talk-with-brandon");
+    const response = await env.GATEWAY.get(id).fetch("https://gateway/status");
+    return await response.json();
+  } catch (error) {
+    return { connected: false, gateway: "unavailable", lastError: String(error?.message || error) };
+  }
+}
 async function processCommand(interaction, env) {
   const name = interaction.data.name;
   const guildId = interaction.guild_id;
@@ -144,7 +154,11 @@ async function processCommand(interaction, env) {
     return;
   }
   if (name === "bot-status") {
-    await replyFollowup(env, interaction, "Real Talk with Brandon bot services are responding through Cloudflare Workers HTTP interactions. This is not a persistent Gateway presence.");
+    const gateway = await gatewaySnapshot(env);
+    const presence = gateway.connected ? "🟢 Online" : "🟠 Connecting / reconnecting";
+    await replyFollowup(env, interaction,
+      `**Real Talk with Brandon Bot**\nGateway presence: **${presence}**\nHTTP interactions: **Active**\nLast Gateway ready: ${gateway.lastReadyAt || "Not connected yet"}` +
+      (gateway.lastError ? `\nLast error: ${String(gateway.lastError).slice(0,250)}` : ""));
     return;
   }
   if (name === "setup-server") {
@@ -279,7 +293,10 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (request.method === "GET" && url.pathname === "/health") {
-      return json({ ok: true, service: "Real Talk with Brandon Discord interactions", mode: "HTTP interactions" });
+      return json({ ok: true, service: "Real Talk with Brandon Discord interactions", mode: "HTTP interactions + Durable Object Gateway prototype" });
+    }
+    if (request.method === "GET" && url.pathname === "/gateway/status") {
+      return json(await gatewaySnapshot(env));
     }
     if (request.method !== "POST" || url.pathname !== "/interactions") return json({ error: "Not found" },404);
     const body = await request.text();
@@ -296,5 +313,9 @@ export default {
   },
   async scheduled(controller,env,ctx) {
     ctx.waitUntil(reminderSweep(env).catch(e => console.error("Reminder sweep failed:",e)));
+    const gatewayId = env.GATEWAY.idFromName("real-talk-with-brandon");
+    ctx.waitUntil(env.GATEWAY.get(gatewayId).fetch("https://gateway/ensure").then(async response => {
+      if (!response.ok) console.error("Gateway ensure failed:", await response.text());
+    }).catch(error => console.error("Gateway start failed:", error)));
   }
 };

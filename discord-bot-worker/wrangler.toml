@@ -8,6 +8,14 @@ BOOKING_URL = "https://calendar.app.google/x8oeprMxLAnDQrUi6"
 DISCORD_INVITE_URL = "https://discord.gg/BaktNA8mwv"
 OWNER_USER_ID = ""
 
+[[durable_objects.bindings]]
+name = "GATEWAY"
+class_name = "DiscordGateway"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["DiscordGateway"]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "real-talk-with-brandon"
