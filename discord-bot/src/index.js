@@ -120,7 +120,7 @@ const client = new Client({
   ]
 });
 
-const APPLICATION_URL = process.env.GUEST_APPLICATION_URL;
+const APPLICATION_URL = process.env.GUEST_APPLICATION_URL || 'https://real-talk-with-brandon-guest-portal.vercel.app';
 const BOOKING_URL = process.env.BOOKING_URL || 'https://calendar.app.google/TbraiQqQtypEeQfx7';
 const OWNER_USER_ID = process.env.OWNER_USER_ID || '';
 const BOT_VERSION = process.env.BOT_VERSION || require('../package.json').version || 'unknown';
