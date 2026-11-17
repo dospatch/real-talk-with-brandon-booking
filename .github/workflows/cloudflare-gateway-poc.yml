@@ -1,0 +1,25 @@
+name: Cloudflare Gateway prototype validation
+
+on:
+  pull_request:
+    paths:
+      - "discord-bot-worker/**"
+      - ".github/workflows/cloudflare-gateway-poc.yml"
+  push:
+    branches:
+      - cloudflare-durable-object-gateway-poc
+    paths:
+      - "discord-bot-worker/**"
+      - ".github/workflows/cloudflare-gateway-poc.yml"
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate Worker bundle and Durable Object bindings
+        working-directory: discord-bot-worker
+        run: npx --yes wrangler@4 deploy --dry-run

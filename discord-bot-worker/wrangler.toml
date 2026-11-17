@@ -1,0 +1,25 @@
+name = "real-talk-with-brandon-discord"
+main = "src/index.js"
+compatibility_date = "2026-11-17"
+
+[vars]
+APPLICATION_URL = "https://real-talk-with-brandon-booking.vercel.app/apply"
+BOOKING_URL = "https://calendar.app.google/x8oeprMxLAnDQrUi6"
+DISCORD_INVITE_URL = "https://discord.gg/BaktNA8mwv"
+OWNER_USER_ID = ""
+
+[[durable_objects.bindings]]
+name = "GATEWAY"
+class_name = "DiscordGateway"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["DiscordGateway"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "real-talk-with-brandon"
+database_id = "c26836dd-c5ec-4b7e-a75b-56c9572818c6"
+
+[triggers]
+crons = ["*/5 * * * *"]

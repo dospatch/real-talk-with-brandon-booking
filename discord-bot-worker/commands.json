@@ -1,0 +1,197 @@
+[
+  {
+    "name": "setup-server",
+    "description": "Create the Real Talk with Brandon staff and guest roles."
+  },
+  {
+    "name": "approve-guest",
+    "description": "Approve an applicant and privately send the booking link.",
+    "options": [
+      {
+        "type": 6,
+        "name": "guest",
+        "description": "Applicant to approve",
+        "required": true
+      },
+      {
+        "type": 3,
+        "name": "notes",
+        "description": "Private staff notes"
+      }
+    ]
+  },
+  {
+    "name": "decline-guest",
+    "description": "Decline a guest application and send a private message.",
+    "options": [
+      {
+        "type": 6,
+        "name": "guest",
+        "description": "Applicant",
+        "required": true
+      },
+      {
+        "type": 3,
+        "name": "reason",
+        "description": "Optional message to the applicant"
+      }
+    ]
+  },
+  {
+    "name": "send-booking",
+    "description": "Privately send the booking link to an approved guest.",
+    "options": [
+      {
+        "type": 6,
+        "name": "guest",
+        "description": "Approved guest",
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "guest-complete",
+    "description": "Mark an interview complete and assign Past Guest role.",
+    "options": [
+      {
+        "type": 6,
+        "name": "guest",
+        "description": "Guest who completed interview",
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "schedule-guest",
+    "description": "Schedule an approved guest interview and reminders.",
+    "options": [
+      {
+        "type": 6,
+        "name": "guest",
+        "description": "Approved guest",
+        "required": true
+      },
+      {
+        "type": 3,
+        "name": "datetime",
+        "description": "ISO date/time with timezone",
+        "required": true
+      },
+      {
+        "type": 3,
+        "name": "topic",
+        "description": "Interview topic"
+      }
+    ]
+  },
+  {
+    "name": "track-application",
+    "description": "Create or update a guest application record.",
+    "options": [
+      {
+        "type": 6,
+        "name": "guest",
+        "description": "Applicant",
+        "required": true
+      },
+      {
+        "type": 3,
+        "name": "status",
+        "description": "Current status",
+        "required": true,
+        "choices": [
+          {
+            "name": "submitted",
+            "value": "submitted"
+          },
+          {
+            "name": "under review",
+            "value": "under_review"
+          },
+          {
+            "name": "approved",
+            "value": "approved"
+          },
+          {
+            "name": "declined",
+            "value": "declined"
+          },
+          {
+            "name": "interview scheduled",
+            "value": "interview_scheduled"
+          },
+          {
+            "name": "completed",
+            "value": "completed"
+          }
+        ]
+      },
+      {
+        "type": 3,
+        "name": "notes",
+        "description": "Private staff notes"
+      }
+    ]
+  },
+  {
+    "name": "application-status",
+    "description": "View one guest application record privately.",
+    "options": [
+      {
+        "type": 6,
+        "name": "guest",
+        "description": "Applicant",
+        "required": true
+      }
+    ]
+  },
+  {
+    "name": "list-applications",
+    "description": "List application records privately.",
+    "options": [
+      {
+        "type": 3,
+        "name": "status",
+        "description": "Status filter",
+        "choices": [
+          {
+            "name": "All",
+            "value": "all"
+          },
+          {
+            "name": "submitted",
+            "value": "submitted"
+          },
+          {
+            "name": "under review",
+            "value": "under_review"
+          },
+          {
+            "name": "approved",
+            "value": "approved"
+          },
+          {
+            "name": "declined",
+            "value": "declined"
+          },
+          {
+            "name": "interview scheduled",
+            "value": "interview_scheduled"
+          },
+          {
+            "name": "completed",
+            "value": "completed"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "bot-status",
+    "description": "Show the bot HTTP service status."
+  },
+  {
+    "name": "guest-help",
+    "description": "Show the guest application and approval process."
+  }
+]\n
